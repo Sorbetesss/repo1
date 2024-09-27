@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:common/constants.dart';
 import 'package:common/model/device.dart';
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,7 @@ import 'package:localsend_app/pages/language_page.dart';
 import 'package:localsend_app/pages/tabs/settings_tab_controller.dart';
 import 'package:localsend_app/provider/settings_provider.dart';
 import 'package:localsend_app/provider/version_provider.dart';
+import 'package:localsend_app/util/alias_generator.dart';
 import 'package:localsend_app/util/device_type_ext.dart';
 import 'package:localsend_app/util/native/pick_directory_path.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
@@ -308,8 +310,39 @@ class SettingsTab extends StatelessWidget {
                     ),
                   ),
                 ),
-                _SettingsEntry(
+                _SettingsEntryWithLeadingIcons(
                   label: t.settingsTab.network.alias,
+                  leadingIcons: [
+                    Tooltip(
+                      message: t.settingsTab.network.generateRandomAlias,
+                      child: IconButton(
+                        onPressed: () async {
+                          // Generates random alias
+                          final newAlias = generateRandomAlias();
+
+                          // Update the TextField with the new alias
+                          vm.aliasController.text = newAlias;
+
+                          // Persist the new alias using the settingsProvider
+                          await ref.notifier(settingsProvider).setAlias(newAlias);
+                        },
+                        icon: const Icon(Icons.casino),
+                      ),
+                    ),
+                    Tooltip(
+                      message: t.settingsTab.network.useSystemName,
+                      child: IconButton(
+                        onPressed: () async {
+                          // Uses dart.io to find the systems hostname
+                          final newAlias = Platform.localHostname;
+
+                          vm.aliasController.text = newAlias;
+                          await ref.notifier(settingsProvider).setAlias(newAlias);
+                        },
+                        icon: const Icon(Icons.desktop_windows_rounded),
+                      ),
+                    ),
+                  ],
                   child: TextFieldTv(
                     name: t.settingsTab.network.alias,
                     controller: vm.aliasController,
@@ -614,6 +647,44 @@ class _ButtonEntry extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A specialized version of [_SettingsEntry].
+class _SettingsEntryWithLeadingIcons extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final List<Widget>? leadingIcons; // Optional list of widgets for icons
+
+  const _SettingsEntryWithLeadingIcons({
+    required this.label,
+    required this.child,
+    this.leadingIcons,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label),
+          ),
+          const SizedBox(width: 10),
+          Row(
+            children: [
+              // If leadingIcons are provided, display them; otherwise, show nothing
+              if (leadingIcons != null) ...leadingIcons!,
+              SizedBox(
+                width: 150,
+                child: child,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
